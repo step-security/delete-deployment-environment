@@ -44,8 +44,30 @@ export async function run(): Promise<void> {
     const shouldDeleteDeployments = !onlyDeactivateDeployments;
     const shouldDeleteEnvironment = !onlyRemoveDeployments && !onlyDeactivateDeployments;
 
-    // Initialize GitHub client
-    const octokit = github.getOctokit(token);
+    // Initialize GitHub client with rate limiting and preview headers
+    const octokit = github.getOctokit(token, {
+      throttle: {
+        onRateLimit: (retryAfter = 0, options: any) => {
+          core.warning(
+            `Request quota exhausted for request ${options.method} ${options.url}`
+          );
+          if (options.request.retryCount === 0) {
+            core.info(`Retrying after ${retryAfter} seconds!`);
+            return true;
+          }
+        },
+        onAbuseLimit: (retryAfter = 0, options: any) => {
+          core.warning(
+            `Abuse detected for request ${options.method} ${options.url}`
+          );
+          if (options.request.retryCount === 0) {
+            core.info(`Retrying after ${retryAfter} seconds!`);
+            return true;
+          }
+        },
+      },
+      previews: ['ant-man'],
+    });
     const { owner, repo } = github.context.repo;
 
     core.info(`Starting deployment management for environment: ${environment}`);
