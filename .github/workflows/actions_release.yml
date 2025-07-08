@@ -9,7 +9,7 @@ on:
       script:
         description: "Specify the build script to run"
         required: false
-        default: "npm run pack"
+        default: "npm run build && npm run pack"
 
 permissions:
   contents: read

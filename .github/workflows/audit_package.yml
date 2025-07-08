@@ -11,6 +11,11 @@ on:
         description: "Specify a base branch"
         required: false
         default: "main"
+      script:
+        description: "Specify the build script to run"
+        required: false
+        default: "npm run build && npm run pack"
+
   schedule:
     - cron: "0 0 * * 1"
 
@@ -20,6 +25,7 @@ jobs:
     with:
       force: ${{ inputs.force || false }}
       base_branch: ${{ inputs.base_branch || 'main' }}
+      script: "${{ inputs.script || 'npm run build && npm run pack' }}"
 
 permissions:
   contents: write

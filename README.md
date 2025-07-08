@@ -27,7 +27,7 @@ If you need to delete environments, you'll need a GitHub App with admin permissi
 1. [Create a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
 2. [Generate a Private Key](https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#generating-a-private-key)
 3. Add your App ID and Private Key as [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
-4. Use [navikt/github-app-token-generator](https://github.com/navikt/github-app-token-generator) to generate the token
+4. Use [actions/create-github-app-token](https://github.com/actions/create-github-app-token) to generate the token
 
 ### 🧪 Example: Use With GitHub App Token
 
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: 🎟 Get GitHub App token
-        uses: navikt/github-app-token-generator@v1
+        uses: actions/create-github-app-token@v2
         id: get-token
         with:
           app-id: ${{ secrets.GH_APP_ID }}

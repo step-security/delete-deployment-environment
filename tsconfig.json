@@ -6,10 +6,10 @@
     "declaration": false,
     "target": "es6",
     "sourceMap": true,
-    "lib": ["es6", "dom"],
+    "lib": ["es6"],
     "outDir": "lib",
     "rootDir": "src",
     "moduleResolution": "node",
   },
-  "exclude": ["node_modules", "__tests__/*.test.ts"],
+  "exclude": ["node_modules"],
 }

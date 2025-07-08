@@ -20,11 +20,11 @@ inputs:
     required: false
 
   onlyRemoveDeployments:
-    description: 'Set to true to only remove deployments, leaving the environment intact. Defaults to false.'
+    description: Set to true to only remove deployments, leaving the environment intact. Defaults to false.
     required: false
 
   onlyDeactivateDeployments:
-    description: 'Set to true to deactivate deployments only, without removing deployments or the environment. Defaults to false.'
+    description: Set to true to deactivate deployments only, without removing deployments or the environment. Defaults to false.
     required: false
 
 runs:
