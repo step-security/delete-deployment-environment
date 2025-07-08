@@ -15,7 +15,7 @@
     "axios": "^1.10.0"
   },
   "devDependencies": {
-    "@octokit/core": "^4.2.4",
+    "@octokit/core": "^7.0.2",
     "@octokit/request-error": "^3.0.3",
     "@types/node": "^24.0.10",
     "@vercel/ncc": "^0.34.0",
