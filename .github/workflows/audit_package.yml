@@ -15,6 +15,10 @@ on:
         description: "Specify the build script to run"
         required: false
         default: "npm run build && npm run pack"
+      node_version:
+        description: "Specify Node.js version (e.g., '18', '20', 'lts/*')"
+        required: false
+        default: "24"
 
   schedule:
     - cron: "0 0 * * 1"
@@ -26,6 +30,7 @@ jobs:
       force: ${{ inputs.force || false }}
       base_branch: ${{ inputs.base_branch || 'main' }}
       script: "${{ inputs.script || 'npm run build && npm run pack' }}"
+      node_version: "${{ inputs.node_version || '24' }}"
 
 permissions:
   contents: write

@@ -29,177 +29,176 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const fs = __importStar(__nccwpck_require__(7147));
 const axios_1 = __importStar(__nccwpck_require__(8757));
-function validateSubscription() {
-    var _a;
-    return __awaiter(this, void 0, void 0, function* () {
-        const API_URL = `https://agent.api.stepsecurity.io/v1/github/${process.env.GITHUB_REPOSITORY}/actions/subscription`;
-        try {
-            yield axios_1.default.get(API_URL, { timeout: 3000 });
+async function validateSubscription() {
+    const eventPath = process.env.GITHUB_EVENT_PATH;
+    let repoPrivate;
+    if (eventPath && fs.existsSync(eventPath)) {
+        const eventData = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+        repoPrivate = eventData?.repository?.private;
+    }
+    const upstream = 'strumwolf/delete-deployment-environment';
+    const action = process.env.GITHUB_ACTION_REPOSITORY;
+    const docsUrl = 'https://docs.stepsecurity.io/actions/stepsecurity-maintained-actions';
+    core.info('');
+    core.info('[1;36mStepSecurity Maintained Action[0m');
+    core.info(`Secure drop-in replacement for ${upstream}`);
+    if (repoPrivate === false)
+        core.info('[32m✓ Free for public repositories[0m');
+    core.info(`[36mLearn more:[0m ${docsUrl}`);
+    core.info('');
+    if (repoPrivate === false)
+        return;
+    const serverUrl = process.env.GITHUB_SERVER_URL || 'https://github.com';
+    const body = { action: action || '' };
+    if (serverUrl !== 'https://github.com')
+        body.ghes_server = serverUrl;
+    try {
+        await axios_1.default.post(`https://agent.api.stepsecurity.io/v1/github/${process.env.GITHUB_REPOSITORY}/actions/maintained-actions-subscription`, body, { timeout: 3000 });
+    }
+    catch (error) {
+        if ((0, axios_1.isAxiosError)(error) && error.response?.status === 403) {
+            core.error(`[1;31mThis action requires a StepSecurity subscription for private repositories.[0m`);
+            core.error(`[31mLearn how to enable a subscription: ${docsUrl}[0m`);
+            process.exit(1);
         }
-        catch (error) {
-            if ((0, axios_1.isAxiosError)(error) && ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 403) {
-                core.error('Subscription is not valid. Reach out to support@stepsecurity.io');
-                process.exit(1);
-            }
-            else {
-                core.info('Timeout or API not reachable. Continuing to next step.');
-            }
-        }
-    });
+        core.info('Timeout or API not reachable. Continuing to next step.');
+    }
 }
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            yield validateSubscription();
-            // Get inputs from action.yml
-            const token = core.getInput('token', { required: true });
-            const environment = core.getInput('environment', { required: true });
-            const targetRef = core.getInput('ref', { required: false });
-            const onlyRemoveDeployments = core.getInput('onlyRemoveDeployments', { required: false }) === 'true';
-            const onlyDeactivateDeployments = core.getInput('onlyDeactivateDeployments', { required: false }) === 'true';
-            // Determine what operations to perform
-            const shouldDeleteDeployments = !onlyDeactivateDeployments;
-            const shouldDeleteEnvironment = !onlyRemoveDeployments && !onlyDeactivateDeployments;
-            // Initialize GitHub client with rate limiting and preview headers
-            const octokit = github.getOctokit(token, {
-                throttle: {
-                    onRateLimit: (retryAfter = 0, options) => {
-                        core.warning(`Request quota exhausted for request ${options.method} ${options.url}`);
-                        if (options.request.retryCount === 0) {
-                            core.info(`Retrying after ${retryAfter} seconds!`);
-                            return true;
-                        }
-                    },
-                    onAbuseLimit: (retryAfter = 0, options) => {
-                        core.warning(`Abuse detected for request ${options.method} ${options.url}`);
-                        if (options.request.retryCount === 0) {
-                            core.info(`Retrying after ${retryAfter} seconds!`);
-                            return true;
-                        }
-                    },
+async function run() {
+    try {
+        await validateSubscription();
+        // Get inputs from action.yml
+        const token = core.getInput('token', { required: true });
+        const environment = core.getInput('environment', { required: true });
+        const targetRef = core.getInput('ref', { required: false });
+        const onlyRemoveDeployments = core.getInput('onlyRemoveDeployments', { required: false }) === 'true';
+        const onlyDeactivateDeployments = core.getInput('onlyDeactivateDeployments', { required: false }) === 'true';
+        // Determine what operations to perform
+        const shouldDeleteDeployments = !onlyDeactivateDeployments;
+        const shouldDeleteEnvironment = !onlyRemoveDeployments && !onlyDeactivateDeployments;
+        // Initialize GitHub client with rate limiting and preview headers
+        const octokit = github.getOctokit(token, {
+            throttle: {
+                onRateLimit: (retryAfter = 0, options) => {
+                    core.warning(`Request quota exhausted for request ${options.method} ${options.url}`);
+                    if (options.request.retryCount === 0) {
+                        core.info(`Retrying after ${retryAfter} seconds!`);
+                        return true;
+                    }
                 },
-                previews: ['ant-man'],
-            });
-            const { owner, repo } = github.context.repo;
-            core.info(`Starting deployment management for environment: ${environment}`);
-            // Fetch all deployments for the environment
-            const deployments = yield fetchDeployments(octokit, { owner, repo }, environment, targetRef);
-            if (deployments.length === 0) {
-                core.info('No deployments found for the specified environment');
-                return;
-            }
-            core.info(`Found ${deployments.length} deployment(s) to process`);
-            // Deactivate all deployments
-            yield deactivateDeployments(octokit, { owner, repo }, deployments);
-            // Delete deployments if requested
-            if (shouldDeleteDeployments) {
-                yield deleteDeployments(octokit, { owner, repo }, deployments);
-            }
-            // Delete environment if requested
-            if (shouldDeleteEnvironment) {
-                yield deleteEnvironment(octokit, { owner, repo }, environment);
-            }
-            core.info('Action completed successfully');
+                onAbuseLimit: (retryAfter = 0, options) => {
+                    core.warning(`Abuse detected for request ${options.method} ${options.url}`);
+                    if (options.request.retryCount === 0) {
+                        core.info(`Retrying after ${retryAfter} seconds!`);
+                        return true;
+                    }
+                },
+            },
+            previews: ['ant-man'],
+        });
+        const { owner, repo } = github.context.repo;
+        core.info(`Starting deployment management for environment: ${environment}`);
+        // Fetch all deployments for the environment
+        const deployments = await fetchDeployments(octokit, { owner, repo }, environment, targetRef);
+        if (deployments.length === 0) {
+            core.info('No deployments found for the specified environment');
+            return;
         }
-        catch (error) {
-            core.setFailed(`Action failed: ${error instanceof Error ? error.message : String(error)}`);
+        core.info(`Found ${deployments.length} deployment(s) to process`);
+        // Deactivate all deployments
+        await deactivateDeployments(octokit, { owner, repo }, deployments);
+        // Delete deployments if requested
+        if (shouldDeleteDeployments) {
+            await deleteDeployments(octokit, { owner, repo }, deployments);
         }
-    });
+        // Delete environment if requested
+        if (shouldDeleteEnvironment) {
+            await deleteEnvironment(octokit, { owner, repo }, environment);
+        }
+        core.info('Action completed successfully');
+    }
+    catch (error) {
+        core.setFailed(`Action failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 exports.run = run;
-function fetchDeployments(octokit, repoContext, environment, targetRef) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const deployments = [];
-        let page = 1;
-        const perPage = 100;
-        while (true) {
-            const response = yield octokit.rest.repos.listDeployments({
-                owner: repoContext.owner,
-                repo: repoContext.repo,
-                environment,
-                ref: targetRef || undefined,
-                per_page: perPage,
-                page
-            });
-            const pageDeployments = response.data.map(deployment => ({
-                id: deployment.id,
-                ref: deployment.ref
-            }));
-            deployments.push(...pageDeployments);
-            if (pageDeployments.length < perPage) {
-                break;
-            }
-            page++;
-        }
-        return deployments;
-    });
-}
-function deactivateDeployments(octokit, repoContext, deployments) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info('Deactivating deployments...');
-        const promises = deployments.map(deployment => octokit.rest.repos.createDeploymentStatus({
+async function fetchDeployments(octokit, repoContext, environment, targetRef) {
+    const deployments = [];
+    let page = 1;
+    const perPage = 100;
+    while (true) {
+        const response = await octokit.rest.repos.listDeployments({
             owner: repoContext.owner,
             repo: repoContext.repo,
-            deployment_id: deployment.id,
-            state: 'inactive'
+            environment,
+            ref: targetRef || undefined,
+            per_page: perPage,
+            page
+        });
+        const pageDeployments = response.data.map(deployment => ({
+            id: deployment.id,
+            ref: deployment.ref
         }));
-        yield Promise.all(promises);
-        core.info(`Successfully deactivated ${deployments.length} deployment(s)`);
-    });
+        deployments.push(...pageDeployments);
+        if (pageDeployments.length < perPage) {
+            break;
+        }
+        page++;
+    }
+    return deployments;
 }
-function deleteDeployments(octokit, repoContext, deployments) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info('Deleting deployments...');
-        const promises = deployments.map(deployment => octokit.rest.repos.deleteDeployment({
+async function deactivateDeployments(octokit, repoContext, deployments) {
+    core.info('Deactivating deployments...');
+    const promises = deployments.map(deployment => octokit.rest.repos.createDeploymentStatus({
+        owner: repoContext.owner,
+        repo: repoContext.repo,
+        deployment_id: deployment.id,
+        state: 'inactive'
+    }));
+    await Promise.all(promises);
+    core.info(`Successfully deactivated ${deployments.length} deployment(s)`);
+}
+async function deleteDeployments(octokit, repoContext, deployments) {
+    core.info('Deleting deployments...');
+    const promises = deployments.map(deployment => octokit.rest.repos.deleteDeployment({
+        owner: repoContext.owner,
+        repo: repoContext.repo,
+        deployment_id: deployment.id
+    }));
+    await Promise.all(promises);
+    core.info(`Successfully deleted ${deployments.length} deployment(s)`);
+}
+async function deleteEnvironment(octokit, repoContext, environment) {
+    try {
+        // Check if environment exists
+        await octokit.rest.repos.getEnvironment({
             owner: repoContext.owner,
             repo: repoContext.repo,
-            deployment_id: deployment.id
-        }));
-        yield Promise.all(promises);
-        core.info(`Successfully deleted ${deployments.length} deployment(s)`);
-    });
-}
-function deleteEnvironment(octokit, repoContext, environment) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            // Check if environment exists
-            yield octokit.rest.repos.getEnvironment({
-                owner: repoContext.owner,
-                repo: repoContext.repo,
-                environment_name: environment
-            });
-            // Delete the environment
-            core.info(`Deleting environment: ${environment}`);
-            yield octokit.rest.repos.deleteAnEnvironment({
-                owner: repoContext.owner,
-                repo: repoContext.repo,
-                environment_name: environment
-            });
-            core.info(`Successfully deleted environment: ${environment}`);
+            environment_name: environment
+        });
+        // Delete the environment
+        core.info(`Deleting environment: ${environment}`);
+        await octokit.rest.repos.deleteAnEnvironment({
+            owner: repoContext.owner,
+            repo: repoContext.repo,
+            environment_name: environment
+        });
+        core.info(`Successfully deleted environment: ${environment}`);
+    }
+    catch (error) {
+        if (error.status === 404) {
+            core.info(`Environment ${environment} not found, skipping deletion`);
         }
-        catch (error) {
-            if (error.status === 404) {
-                core.info(`Environment ${environment} not found, skipping deletion`);
-            }
-            else {
-                throw error;
-            }
+        else {
+            throw error;
         }
-    });
+    }
 }
 //# sourceMappingURL=deployment-manager.js.map
 
