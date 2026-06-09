@@ -1,3 +1,3 @@
-import { run } from './deployment-manager';
+import { run } from './deployment-manager.js';
 
 run();

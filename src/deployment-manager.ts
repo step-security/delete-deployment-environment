@@ -78,7 +78,14 @@ export async function run(): Promise<void> {
     // Initialize GitHub client with rate limiting and preview headers
     const octokit = github.getOctokit(token, {
       throttle: {
-        onRateLimit: (retryAfter = 0, options: any) => {
+          onRateLimit: (
+            retryAfter = 0,
+            options: {
+              method: string;
+              url: string;
+              request: { retryCount: number };
+            },
+          ) => {
           core.warning(
             `Request quota exhausted for request ${options.method} ${options.url}`
           );
@@ -87,7 +94,14 @@ export async function run(): Promise<void> {
             return true;
           }
         },
-        onAbuseLimit: (retryAfter = 0, options: any) => {
+          onAbuseLimit: (
+            retryAfter = 0,
+            options: {
+              method: string;
+              url: string;
+              request: { retryCount: number };
+            },
+          ) => {
           core.warning(
             `Abuse detected for request ${options.method} ${options.url}`
           );
