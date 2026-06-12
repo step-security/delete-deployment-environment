@@ -24,12 +24,22 @@ This action:
 
 ## 🔑 How to Use a Proper Token
 
-If you need to delete environments, you'll need a GitHub App with admin permissions:
+If you need to delete environments, you'll need a GitHub App configured with the right repository permissions. The exact scopes depend on which inputs you pass to this action:
+
+| Inputs                                  | Required App repository permissions       |
+|-----------------------------------------|-------------------------------------------|
+| Default (delete deployments + environment) | `Deployments`: Read & write, `Environments`: Read & write |
+| `onlyRemoveDeployments: true`           | `Deployments`: Read & write               |
+| `onlyDeactivateDeployments: true`       | `Deployments`: Read & write               |
+
+Setup steps:
 
 1. [Create a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app)
-2. [Generate a Private Key](https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#generating-a-private-key)
-3. Add your App ID and Private Key as [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
-4. Use [actions/create-github-app-token](https://github.com/actions/create-github-app-token) to generate the token
+2. Under the App's **Repository permissions**, grant the scopes from the table above
+3. Install the App on the target repository
+4. [Generate a Private Key](https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#generating-a-private-key)
+5. Add your App ID and Private Key as [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
+6. Use [actions/create-github-app-token](https://github.com/actions/create-github-app-token) to mint a token at runtime
 
 ### 🧪 Example: Use With GitHub App Token
 
